@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Peternakan Ayam MT5</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--wood:#7a4a21;--wood2:#9c6330;--cream:#fff4d6;--ink:#3b2412;--up:#1e9e4a;--dn:#d63a2f;--gold:#ffc83d;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;background:#e9d9a8;color:var(--ink);font:500 14px/1.35 "Fredoka",system-ui,sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input{font:inherit;color:inherit}button{cursor:pointer}
+.wrap{max-width:1250px;margin:0 auto;padding:10px}
+header{display:flex;align-items:center;gap:10px;background:var(--wood);color:var(--cream);padding:8px 14px;border-radius:12px;border-bottom:5px solid #5a3515}
+header h1{margin:0;font-size:21px;flex:1}
+.pill{background:#0003;padding:3px 10px;border-radius:99px;font-size:12.5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff6b5e;margin-right:6px}.dot.ok{background:#6df08f}
+.btn{background:var(--gold);border:0;border-bottom:3px solid #c99411;border-radius:8px;padding:5px 12px;font-weight:600}
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
+.sign{background:var(--cream);border:3px solid var(--wood2);border-radius:12px;padding:6px 10px;box-shadow:0 3px 0 #5a3515}
+.sign span{display:block;font-size:12px;color:#8a6a45}.sign b{font-size:20px;font-weight:600}.sign small{display:block;font-size:11.5px;color:#8a6a45}
+.sign.big{grid-column:span 2;background:#fff0b8}.sign.big b{font-size:28px}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.scene{border:5px solid var(--wood);border-radius:14px;overflow:hidden;background:#7ccf5a;position:relative}
+canvas{display:block;width:100%}
+.hint{padding:5px 12px;background:var(--wood);color:var(--cream);font-size:12.5px}
+nav{display:flex;gap:4px;margin:12px 0 0}
+nav button{background:var(--wood2);color:var(--cream);border:0;border-radius:10px 10px 0 0;padding:7px 16px}
+nav button.on{background:var(--cream);color:var(--ink);font-weight:600}
+.tw{background:var(--cream);border:3px solid var(--wood2);border-radius:0 12px 12px 12px;overflow:auto;max-height:340px}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th,td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px dashed #d9c48f}
+th{position:sticky;top:0;background:#f3dfa0;font-weight:600}
+th:first-child,td:first-child,.l{text-align:left}
+.bar{display:inline-block;width:70px;height:8px;background:#e0cf9c;border-radius:9px;vertical-align:middle;overflow:hidden}.bar i{display:block;height:100%;background:var(--up)}
+.empty{padding:26px;text-align:center;color:#8a6a45}
+dialog{background:var(--cream);border:4px solid var(--wood);border-radius:14px;padding:18px;width:min(430px,92vw)}
+dialog::backdrop{background:#0008}
+label{display:block;margin:10px 0 3px;font-size:13px}
+input{width:100%;background:#fff;border:2px solid var(--wood2);border-radius:8px;padding:7px 9px}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐔 Peternakan MT5</h1>
+    <span class="pill"><i class="dot" id="dot"></i><span id="stxt">Belum terhubung</span></span>
+    <button class="btn" id="open">⚙️ Pengaturan</button>
+  </header>
+
+  <section class="board" id="board"></section>
+
+  <div class="scene"><canvas id="farm"></canvas>
+    <div class="hint">🐥 anak/kecil · 🐔 tumbuh gemuk saat profit mendekati TP · 🤢 sakit (floating minus, peternak kasih 💊) · 🥚 bertelur saat posisi ditutup profit · 🍳 telur pecah saat rugi</div>
+  </div>
+
+  <nav id="tabs">
+    <button class="on" data-t="ayam">🐔 Ayam (Posisi)<i id="n1"></i></button>
+    <button data-t="telur">🥚 Telur (Riwayat)<i id="n2"></i></button>
+    <button data-t="eram">🪺 Pengeraman (Pending)<i id="n3"></i></button>
+  </nav>
+  <div class="tw" id="view"><div class="empty">Buka Pengaturan, lalu isi alamat API dan token.</div></div>
+</div>
+
+<dialog id="dlg">
+  <h2 style="margin:0">Hubungkan ke MT5</h2>
+  <div style="font-size:13px;color:#8a6a45">Data tersimpan hanya di browser ini.</div>
+  <label for="url">Alamat API (URL tunnel)</label>
+  <input id="url" placeholder="https://xxxx.trycloudflare.com" autocomplete="off" inputmode="url">
+  <label for="tok">Token</label><input id="tok" type="password" autocomplete="off">
+  <label for="int">Refresh (detik)</label><input id="int" type="number" min="1" max="60" value="2">
+  <div class="acts"><button class="btn" id="cancel" style="background:#e0cf9c;border-color:#bfa86a">Batal</button><button class="btn" id="save">Simpan</button></div>
+</dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get:k=>{try{return localStorage.getItem(k)||""}catch{return""}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=(v,d=2)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const px=v=>v?num(v,2):"";
+const cls=v=>v>0?"up":v<0?"dn":"";
+const sg=v=>(v>0?"+":"")+num(v);
+const net=p=>p.profit+(p.swap||0);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const when=t=>new Date(t*1000).toISOString().slice(0,19).replace("T"," ").replace(/-/g,".");
+const dur=s=>{s=Math.max(0,s|0);const d=s/86400|0,h=s%86400/3600|0,m=s%3600/60|0;return d?`${d}h ${h}j`:h?`${h}j ${m}m`:`${m}m ${s%60}d`};
+
+let S=null,tab="ayam",timer=null,C={},prev=new Set(),fx=[],sess={egg:0,gold:0,crack:0,pnl:0};
+let W=900,H=440,dpr=1,SKY=120;
+const F={x:80,y:SKY+50,task:null,wait:1,n:0};
+const cv=$("farm"),g=cv.getContext("2d");
+
+/* ---------- logika ---------- */
+const nowB=()=>S?S.server_time+(S.broker_offset||0)+(Date.now()-S.at)/1000:0;
+function grow(p,mx){
+  const pg=p.tp?(p.price-p.open)/(p.tp-p.open):NaN;
+  return isFinite(pg)?pg:clamp(net(p)/mx,-1,1);
+}
+const kondisi=(c)=>net(c.p)<0?["🤢","Sakit"]:c.g<.3?["🐥","Anak ayam"]:c.g<.7?["🐔","Tumbuh"]:c.g<1?["🐓","Gemuk"]:["🥚","Siap bertelur"];
+
+function onState(){
+  const P=S.positions,cur=new Set(P.map(p=>p.ticket)),mx=Math.max(10,...P.map(p=>Math.abs(net(p))));
+  prev.forEach(t=>{
+    const c=C[t];if(cur.has(t)||!c)return;
+    const v=net(c.p),gold=v>0&&c.g>=.95;
+    fx.push({k:"egg",e:v>0?"🥚":"🍳",gold,x:c.x,y:c.y+20,life:10,max:10});
+    fx.push({k:"txt",txt:(v>0?"🥚 ":"💔 ")+sg(v),col:v>0?"#1e9e4a":"#d63a2f",x:c.x,y:c.y-30,life:3,max:3});
+    if(v>0){sess.egg++;if(gold)sess.gold++}else sess.crack++;
+    sess.pnl+=v;delete C[t];
+  });
+  prev=cur;
+  P.forEach(p=>{let c=C[p.ticket];if(!c)C[p.ticket]=c={x:70,y:SKY+55,seed:Math.random()*9};c.p=p;c.g=grow(p,mx)});
+  fit();
+}
+function fit(){
+  const n=Object.keys(C).length,w=cv.parentElement.clientWidth-10,cols=Math.max(1,Math.floor((w-170)/104));
+  const rows=Math.max(1,Math.ceil(n/cols)),h=Math.max(440,SKY+90+rows*108);
+  if(w!==W||h!==H||!cv.width){W=w;H=h;dpr=devicePixelRatio||1;cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px"}
+  Object.keys(C).map(Number).sort((a,b)=>a-b).forEach((t,i)=>{C[t].tx=160+(i%cols)*104+52;C[t].ty=SKY+85+Math.floor(i/cols)*108});
+}
+
+/* ---------- papan statistik ---------- */
+function renderBoard(){
+  if(!S)return;
+  const a=S.account,P=S.positions,Hh=S.history,fl=P.reduce((s,p)=>s+net(p),0),n=nowB();
+  const win=Hh.filter(h=>h.profit>0),gold=win.filter(h=>/tp/i.test(h.comment)),lose=Hh.filter(h=>h.profit<=0);
+  const real=Hh.reduce((s,h)=>s+h.profit,0),ds=P.map(p=>n-p.time);
+  const sick=P.filter(p=>net(p)<0).length,wr=Hh.length?win.length/Hh.length*100:0;
+  const best=[...P].sort((x,y)=>net(y)-net(x))[0];
+  const B=[
+   ["big","📈 Total PNL (floating + telur 7 hari)",sg(fl+real),cls(fl+real),`Floating ${sg(fl)} · Telur ${sg(real)} ${a.currency}`],
+   ["","🐔 Ayam hidup",P.length,"",`${P.length-sick} sehat · ${sick} sakit`],
+   ["","🥚 Telur profit",win.length,"up",`${gold.length} telur emas (kena TP)`],
+   ["","🍳 Telur pecah",lose.length,"dn",`${sg(lose.reduce((s,h)=>s+h.profit,0))}`],
+   ["","🎯 Win rate",num(wr,1)+"%","",`${Hh.length} deal / 7 hari`],
+   ["","⏱️ Durasi rata-rata",ds.length?dur(ds.reduce((x,y)=>x+y,0)/ds.length):"–","",ds.length?"terlama "+dur(Math.max(...ds)):""],
+   ["","💰 Equity",num(a.equity),"",`Balance ${num(a.balance)} ${a.currency}`],
+   ["","🌾 Margin level",a.margin?num(a.margin_level)+"%":"–","",`Free ${num(a.free_margin)}`],
+   ["","🧺 Panen sesi ini",sess.egg,"up",`${sess.gold} emas · ${sess.crack} pecah · ${sg(sess.pnl)}`],
+   ["","🏆 Ayam terbaik",best?esc(best.symbol):"–",best?cls(net(best)):"",best?sg(net(best)):""]];
+  $("board").innerHTML=B.map(([c,l,v,k,s])=>`<div class="sign ${c}"><span>${l}</span><b class="${k}">${v}</b><small>${s}</small></div>`).join("");
+  $("n1").textContent=" "+P.length;$("n2").textContent=" "+Hh.length;$("n3").textContent=" "+S.orders.length;
+}
+
+/* ---------- tabel ---------- */
+const table=(hd,rows,em)=>rows.length?`<table><thead><tr>${hd.map((x,i)=>`<th${i==0||x[1]?' class="l"':""}>${x[0]}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">${em}</div>`;
+function renderView(){
+  if(!S)return;const n=nowB();let h;
+  if(tab==="ayam"){
+    const P=[...S.positions].sort((a,b)=>b.time-a.time),mx=Math.max(10,...P.map(p=>Math.abs(net(p))));
+    const rows=P.map(p=>{const gg=grow(p,mx),k=kondisi({p,g:gg}),pc=p.tp?clamp(gg*100,0,100):null;
+      return `<tr><td>${k[0]} ${esc(p.symbol)}</td><td class="${p.type==="buy"?"up":"dn"}">${p.type.toUpperCase()}</td><td>${num(p.volume)}</td><td>${dur(n-p.time)}</td><td>${px(p.open)}</td><td>${px(p.price)}</td><td>${p.tp?px(p.tp):"–"}</td>
+      <td>${k[1]}</td><td>${pc==null?"–":`<span class="bar"><i style="width:${pc}%"></i></span> ${num(pc,0)}%`}</td><td class="${cls(net(p))}">${sg(net(p))}</td><td class="l">${esc(p.comment)}</td></tr>`});
+    const t=P.reduce((s,p)=>s+net(p),0);if(rows.length)rows.push(`<tr><td colspan="9"><b>Total floating</b></td><td class="${cls(t)}"><b>${sg(t)}</b></td><td></td></tr>`);
+    h=table([["Ayam"],["Tipe"],["Lot"],["Umur"],["Open"],["Harga"],["TP"],["Kondisi"],["Menuju TP"],["PNL"],["Komentar",1]],rows,"Kandang kosong. Belum ada posisi terbuka.");
+  }else if(tab==="telur"){
+    const Hh=S.history,rows=Hh.map(x=>{const w=x.profit>0,gd=w&&/tp/i.test(x.comment);
+      return `<tr><td>${gd?"🥚✨ Emas":w?"🥚 Biasa":"🍳 Pecah"}</td><td>${esc(x.symbol)}</td><td>${when(x.time)}</td><td>${x.type.toUpperCase()}</td><td>${num(x.volume)}</td><td>${px(x.price)}</td><td class="${cls(x.profit)}">${sg(x.profit)}</td><td class="l">${esc(x.comment)}</td></tr>`});
+    const t=Hh.reduce((s,x)=>s+x.profit,0);if(rows.length)rows.push(`<tr><td colspan="6"><b>Total ${Hh.length} telur (7 hari)</b></td><td class="${cls(t)}"><b>${sg(t)}</b></td><td></td></tr>`);
+    h=table([["Telur"],["Simbol"],["Waktu"],["Tipe"],["Lot"],["Harga"],["PNL"],["Komentar",1]],rows,"Belum ada telur.");
+  }else{
+    const rows=S.orders.map(o=>`<tr><td>🪺 ${esc(o.symbol)}</td><td>${o.type.toUpperCase()}</td><td>${num(o.volume)}</td><td>${dur(n-o.time)}</td><td>${px(o.price)}</td><td>${px(o.sl)}</td><td>${px(o.tp)}</td><td class="l">${esc(o.comment)}</td></tr>`);
+    h=table([["Telur dierami"],["Tipe"],["Lot"],["Lama"],["Harga"],["SL"],["TP"],["Komentar",1]],rows,"Tidak ada pending order.");
+  }
+  $("view").innerHTML=h;
+}
+
+/* ---------- animasi ---------- */
+const emo=(e,x,y,s,flip)=>{g.font=`${s}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;g.textAlign="center";g.textBaseline="middle";
+  if(flip){g.save();g.translate(x,y);g.scale(-1,1);g.fillText(e,0,0);g.restore()}else g.fillText(e,x,y)};
+const label=(t,x,y,col)=>{g.font='600 11px Fredoka,sans-serif';g.textAlign="center";const w=g.measureText(t).width+10;g.fillStyle="#0007";g.fillRect(x-w/2,y-8,w,16);g.fillStyle=col;g.fillText(t,x,y)};
+function bubble(t,x,y){g.font='600 12px Fredoka,sans-serif';const w=g.measureText(t).width+14;g.fillStyle="#fff";g.strokeStyle="#7a4a21";g.lineWidth=2;
+  g.beginPath();g.roundRect(x-w/2,y-14,w,26,8);g.fill();g.stroke();g.fillStyle="#3b2412";g.textAlign="center";g.fillText(t,x,y)}
+
+function update(dt){
+  Object.values(C).forEach(c=>{if(c.tx==null)return;const k=Math.min(1,dt*1.6);c.x+=(c.tx-c.x)*k;c.y+=(c.ty-c.y)*k});
+  fx.forEach(f=>f.life-=dt);fx=fx.filter(f=>f.life>0);
+  const f=F;
+  if(!f.task){
+    if((f.wait-=dt)>0)return;
+    const ids=Object.keys(C);
+    if(!ids.length){f.tx=80;f.ty=SKY+50;return mv(dt)}
+    const sick=ids.filter(i=>net(C[i].p)<0);f.n++;
+    const id=sick.length&&f.n%2?sick[Math.random()*sick.length|0]:ids[f.n%ids.length];
+    f.task={id,sick:net(C[id].p)<0,t:0};
+  }
+  const c=C[f.task.id];if(!c){f.task=null;return}
+  f.tx=c.x-46;f.ty=c.y+6;
+  if(mv(dt)<8){f.task.t+=dt;
+    if(f.task.t>1.7){fx.push({k:"pop",e:f.task.sick?"💊":"🌾",x:c.x,y:c.y-55,life:1.3,max:1.3},{k:"pop",e:f.task.sick?"✨":"💚",x:c.x+20,y:c.y-40,life:1.6,max:1.6});f.task=null;f.wait=.5}}
+}
+function mv(dt){const dx=F.tx-F.x,dy=F.ty-F.y,d=Math.hypot(dx,dy),s=Math.min(d,190*dt);if(d>1){F.x+=dx/d*s;F.y+=dy/d*s}F.moving=d>8;return d}
+
+function render(t){
+  g.setTransform(dpr,0,0,dpr,0,0);
+  let k=g.createLinearGradient(0,0,0,SKY);k.addColorStop(0,"#6ec6ff");k.addColorStop(1,"#d6f1ff");g.fillStyle=k;g.fillRect(0,0,W,SKY);
+  k=g.createLinearGradient(0,SKY,0,H);k.addColorStop(0,"#86d663");k.addColorStop(1,"#4a9535");g.fillStyle=k;g.fillRect(0,SKY,W,H-SKY);
+  emo("☀️",W-50,38,44);emo("☁️",W*.35+Math.sin(t/9)*30,32,50);emo("☁️",W*.65+Math.cos(t/11)*30,55,40);
+  g.fillStyle="#b3322b";g.fillRect(14,SKY-64,104,92);g.fillStyle="#7a1f1a";g.beginPath();g.moveTo(4,SKY-62);g.lineTo(66,SKY-112);g.lineTo(128,SKY-62);g.fill();
+  g.fillStyle="#fff4d6";g.fillRect(46,SKY-24,40,52);g.strokeStyle="#b3322b";g.lineWidth=3;g.strokeRect(46,SKY-24,40,52);g.beginPath();g.moveTo(46,SKY-24);g.lineTo(86,SKY+28);g.moveTo(86,SKY-24);g.lineTo(46,SKY+28);g.stroke();
+  g.fillStyle="#d9a65b";for(let x=140;x<W;x+=26)g.fillRect(x,SKY-16,6,28);g.fillRect(140,SKY-8,W-140,4);g.fillRect(140,SKY+2,W-140,4);
+  [["🌻",150,SKY+30],["🌳",W-40,SKY-5],["🌼",W-120,SKY+40],["🌷",175,H-18],["🌳",W-30,H-40]].forEach(([e,x,y])=>emo(e,x,y,30));
+  emo("🧺",W-70,SKY+75,40);g.font='600 13px Fredoka,sans-serif';g.fillStyle="#fff";g.textAlign="center";g.fillText(sess.egg+" telur",W-70,SKY+104);
+
+  Object.values(C).sort((a,b)=>a.y-b.y).forEach(c=>{
+    const p=c.p,v=net(p),sick=v<0,gr=sick?.85:.9+clamp(c.g,0,1.1)*.9,sz=44*gr,bob=Math.sin(t*3+c.seed)*(sick?1:3),flip=c.seed>4.5;
+    g.fillStyle="#0002";g.beginPath();g.ellipse(c.x,c.y+sz*.45,sz*.45,sz*.12,0,0,7);g.fill();
+    if(sick){g.fillStyle="#7cff6a44";g.beginPath();g.arc(c.x,c.y+bob,sz*.6,0,7);g.fill()}
+    emo(c.g<.3&&!sick?"🐥":"🐔",c.x,c.y+bob,sz,flip);
+    if(sick)emo("🤢",c.x+(flip?-1:1)*sz*.25,c.y+bob-sz*.62,sz*.4);
+    else if(c.g>=.9){emo("🥚",c.x,c.y+sz*.5+Math.abs(Math.sin(t*4))*-4,sz*.4);emo("✨",c.x+sz*.4,c.y-sz*.5,sz*.35)}
+    label(`${p.symbol} ${p.type==="buy"?"B":"S"} ${sg(v)}`,c.x,c.y+sz*.62+8,v>=0?"#8dffae":"#ff9d94");
+    label("⏱ "+dur(nowB()-p.time),c.x,c.y+sz*.62+26,"#fff4d6");
+  });
+  fx.forEach(f=>{const a=Math.min(1,f.life/1.2);g.globalAlpha=a;
+    if(f.k==="egg"){const b=Math.max(0,1-(f.max-f.life)*3);if(f.gold){const r=g.createRadialGradient(f.x,f.y,2,f.x,f.y,34);r.addColorStop(0,"#ffe27a");r.addColorStop(1,"#ffe27a00");g.fillStyle=r;g.fillRect(f.x-34,f.y-34,68,68);emo("✨",f.x+14,f.y-14,18)}emo(f.e,f.x,f.y-b*40*Math.abs(Math.sin(b*6)),30)}
+    else if(f.k==="txt"){g.font='700 16px Fredoka,sans-serif';g.fillStyle=f.col;g.textAlign="center";g.fillText(f.txt,f.x,f.y-(f.max-f.life)*26)}
+    else emo(f.e,f.x,f.y-(f.max-f.life)*20,26);
+    g.globalAlpha=1});
+  const bz=F.moving?Math.abs(Math.sin(t*10))*-4:0;emo("🧑‍🌾",F.x,F.y+bz,58,F.tx<F.x);
+  if(F.task){const s=F.task.sick;emo(s?"💊":"🌾",F.x+(F.tx<F.x?-24:24),F.y-14+bz,24);if(!F.moving)bubble(s?"Minum obat dulu ya! 💊":"Makan yang banyak! 🌾",F.x,F.y-52)}
+  else if(!Object.keys(C).length)bubble("Kandang kosong… 🐣",F.x+10,F.y-52);
+}
+let last=0;
+function frame(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;if(cv.width){update(dt);render(ts/1000)}requestAnimationFrame(frame)}
+
+/* ---------- koneksi ---------- */
+function setStatus(ok,t){$("dot").classList.toggle("ok",ok);$("stxt").textContent=t}
+async function poll(){
+  const b=store.get("url").replace(/\/+$/,""),tk=store.get("tok");
+  if(!b||!tk)return setStatus(false,"Belum terhubung");
+  try{
+    const r=await fetch(b+"/api/state",{headers:{"X-Token":tk},cache:"no-store"});
+    if(r.status===401)throw new Error("Token salah");
+    const j=await r.json();if(!r.ok)throw new Error(j.error||"Server error "+r.status);
+    j.at=Date.now();S=j;onState();renderBoard();renderView();
+    setStatus(true,"Live · "+new Date().toLocaleTimeString("id-ID"));
+  }catch(e){setStatus(false,e.message==="Failed to fetch"?"Server tidak terjangkau":e.message)}
+}
+function start(){clearInterval(timer);const s=clamp(+store.get("int")||2,1,60);poll();timer=setInterval(()=>{if(!document.hidden)poll()},s*1000)}
+$("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;tab=b.dataset.t;document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));renderView()};
+$("open").onclick=()=>{$("url").value=store.get("url");$("tok").value=store.get("tok");$("int").value=store.get("int")||2;$("dlg").showModal()};
+$("cancel").onclick=()=>$("dlg").close();
+$("save").onclick=()=>{store.set("url",$("url").value.trim());store.set("tok",$("tok").value.trim());store.set("int",$("int").value);$("dlg").close();start()};
+addEventListener("resize",()=>{cv.width=0;fit()});
+setInterval(()=>{renderBoard();if(tab!=="telur")renderView()},1000);
+fit();requestAnimationFrame(frame);start();
+</script>
+</body>
+</html>
